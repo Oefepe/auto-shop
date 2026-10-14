@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto-Shop — Architecture Documentation</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --accent3: #ff6b6b;
+      --accent4: #ffa500;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --code-bg: #12151f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12152a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem 2.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% -20%, rgba(108,99,255,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    header .badge {
+      display: inline-block;
+      background: rgba(108,99,255,0.15);
+      border: 1px solid rgba(108,99,255,0.4);
+      color: #a69fff;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.3rem 1rem;
+      border-radius: 100px;
+      margin-bottom: 1.2rem;
+    }
+    header h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, #a69fff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(26,29,39,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 0;
+    }
+    nav .container {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    nav a:hover { background: var(--surface2); color: var(--text); }
+
+    main { padding: 3rem 0 5rem; }
+
+    section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: 70px;
+    }
+
+    h2 {
+      font-size: 1.55rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: #fff;
+    }
+    h2 .icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.6rem;
+      color: var(--text);
+    }
+
+    p { color: var(--text-muted); margin-bottom: 0.8rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .card-grid {
+      display: grid;
+      gap: 1rem;
+    }
+    .card-grid.cols-2 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .card-grid.cols-3 { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+    .card h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: #fff;
+    }
+    .card p { margin-bottom: 0; font-size: 0.88rem; }
+
+    .card.accent-purple  { border-left: 3px solid var(--accent); }
+    .card.accent-green   { border-left: 3px solid var(--accent2); }
+    .card.accent-red     { border-left: 3px solid var(--accent3); }
+    .card.accent-orange  { border-left: 3px solid var(--accent4); }
+
+    /* ── Tag pills ── */
+    .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+    .tag {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 100px;
+      font-weight: 500;
+    }
+    .tag-purple { background: rgba(108,99,255,0.15); color: #a69fff; border: 1px solid rgba(108,99,255,0.3); }
+    .tag-green  { background: rgba(0,212,170,0.12); color: #00d4aa; border: 1px solid rgba(0,212,170,0.3); }
+    .tag-red    { background: rgba(255,107,107,0.12); color: #ff8080; border: 1px solid rgba(255,107,107,0.3); }
+    .tag-orange { background: rgba(255,165,0,0.12); color: #ffb833; border: 1px solid rgba(255,165,0,0.3); }
+    .tag-blue   { background: rgba(56,189,248,0.12); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.3); }
+
+    /* ── Code ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem;
+      overflow-x: auto;
+      font-size: 0.83rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; }
+    pre code { color: #c0caf5; }
+    .k { color: #bb9af7; } /* keyword  */
+    .s { color: #9ece6a; } /* string   */
+    .n { color: #7dcfff; } /* name     */
+    .c { color: #565f89; } /* comment  */
+    .v { color: #e0af68; } /* value    */
+
+    /* ── Architecture diagram (CSS-only) ── */
+    .arch-diagram {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      overflow-x: auto;
+    }
+    .arch-row {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+    .arch-row + .arch-row::before {
+      content: '';
+      display: block;
+      width: 2px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 auto 0.5rem;
+    }
+    .arch-node {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .node-client   { background: rgba(108,99,255,0.18); border: 1px solid rgba(108,99,255,0.4); color: #c4bfff; }
+    .node-gateway  { background: rgba(255,165,0,0.15); border: 1px solid rgba(255,165,0,0.4); color: #ffc55c; }
+    .node-service  { background: rgba(0,212,170,0.12); border: 1px solid rgba(0,212,170,0.35); color: #5eead4; }
+    .node-queue    { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.35); color: #fca5a5; }
+    .node-db       { background: rgba(56,189,248,0.10); border: 1px solid rgba(56,189,248,0.35); color: #7dd3fc; }
+    .node-ext      { background: rgba(134,239,172,0.10); border: 1px solid rgba(134,239,172,0.35); color: #86efac; }
+
+    .arch-label {
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead { background: var(--surface2); }
+    th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(46,50,80,0.5);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+    td strong { color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ── Callout ── */
+    .callout {
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .callout-info    { background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.25); }
+    .callout-warn    { background: rgba(255,165,0,0.08); border: 1px solid rgba(255,165,0,0.25); }
+    .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout-body { color: var(--text-muted); }
+    .callout-body strong { color: var(--text); display: block; margin-bottom: 0.2rem; }
+
+    /* ── Flow steps ── */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+    .flow-step {
+      display: flex;
+      gap: 1rem;
+      position: relative;
+    }
+    .flow-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 14px;
+      top: 30px;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .flow-num {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      background: var(--accent);
+      color: #fff;
+      margin-top: 0.35rem;
+      position: relative;
+      z-index: 1;
+    }
+    .flow-body { padding-bottom: 1.5rem; }
+    .flow-body strong { color: var(--text); font-size: 0.95rem; }
+    .flow-body p { margin-top: 0.2rem; font-size: 0.875rem; }
+
+    /* ── Divider ── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header>
+  <div class="badge">Architecture Documentation — v1.0</div>
+  <h1>Auto-Shop</h1>
+  <p>Automated stock management system integrated with Mercado Livre &amp; Meta Marketplace, syncing online and in-person sales in real-time.</p>
+</header>
+
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav>
+  <div class="container">
+    <a href="#overview">Overview</a>
+    <a href="#stack">Tech Stack</a>
+    <a href="#microservices">Microservices</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#databases">Databases</a>
+    <a href="#integrations">Integrations</a>
+    <a href="#flows">Data Flows</a>
+    <a href="#infra">Infrastructure</a>
+    <a href="#roadmap">Roadmap</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main>
+<div class="container">
+
+  <!-- 1. OVERVIEW -->
+  <section id="overview">
+    <h2><span class="icon" style="background:rgba(108,99,255,0.2)">&#9881;</span> Project Overview</h2>
+    <p>
+      Auto-Shop is an event-driven inventory management platform that keeps product stock levels
+      synchronized across multiple sales channels — including physical stores (POS) and online
+      marketplaces such as <strong style="color:#fff">Mercado Livre</strong> and
+      <strong style="color:#fff">Meta Marketplace</strong>.
+    </p>
+    <p>
+      When a sale is registered on any channel, stock is automatically decremented across all
+      connected listings. Likewise, manual stock adjustments propagate outward to all
+      marketplace listings in near real-time.
+    </p>
+
+    <div class="card-grid cols-3" style="margin-top:1.5rem">
+      <div class="card accent-purple">
+        <h4>Problem it solves</h4>
+        <p>Prevents overselling and manual stock reconciliation across multiple platforms.</p>
+      </div>
+      <div class="card accent-green">
+        <h4>Core capability</h4>
+        <p>Real-time bidirectional stock sync between physical POS and online marketplaces.</p>
+      </div>
+      <div class="card accent-orange">
+        <h4>Extensibility</h4>
+        <p>Microservice architecture allows new marketplaces to be added with minimal impact.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. TECH STACK -->
+  <section id="stack">
+    <h2><span class="icon" style="background:rgba(0,212,170,0.15)">&#128736;</span> Recommended Tech Stack</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Recommended</th>
+            <th>Alternatives</th>
+            <th>Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>API Services</strong></td>
+            <td><span class="tag tag-green">Node.js + TypeScript</span></td>
+            <td>Python (FastAPI), Go</td>
+            <td>Strong async I/O, rich npm ecosystem, same language across services</td>
+          </tr>
+          <tr>
+            <td><strong>API Framework</strong></td>
+            <td><span class="tag tag-green">Fastify</span></td>
+            <td>Express, NestJS</td>
+            <td>High throughput, schema validation built-in, plugin architecture</td>
+          </tr>
+          <tr>
+            <td><strong>API Gateway</strong></td>
+            <td><span class="tag tag-orange">Kong</span></td>
+            <td>AWS API Gateway, Traefik</td>
+            <td>Rate limiting, auth plugins, routing — open-source friendly</td>
+          </tr>
+          <tr>
+            <td><strong>Primary Database</strong></td>
+            <td><span class="tag tag-blue">MongoDB</span></td>
+            <td>PostgreSQL</td>
+            <td>Flexible schema for varied product attributes; horizontal scaling with sharding</td>
+          </tr>
+          <tr>
+            <td><strong>Cache / Sessions</strong></td>
+            <td><span class="tag tag-red">Redis</span></td>
+            <td>Memcached</td>
+            <td>Sub-millisecond reads, pub/sub, TTL-based token/session storage</td>
+          </tr>
+          <tr>
+            <td><strong>Message Queue</strong></td>
+            <td><span class="tag tag-red">RabbitMQ</span></td>
+            <td>Apache Kafka, AWS SQS</td>
+            <td>Reliable delivery, dead-letter queues, simpler ops than Kafka for this scale</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend Dashboard</strong></td>
+            <td><span class="tag tag-purple">Next.js (React)</span></td>
+            <td>Nuxt (Vue), SvelteKit</td>
+            <td>SSR + static generation, excellent DX, wide talent pool</td>
+          </tr>
+          <tr>
+            <td><strong>Auth</strong></td>
+            <td><span class="tag tag-blue">JWT + OAuth 2.0</span></td>
+            <td>Keycloak</td>
+            <td>Stateless service-to-service auth; OAuth required by marketplace APIs</td>
+          </tr>
+          <tr>
+            <td><strong>Containerization</strong></td>
+            <td><span class="tag tag-blue">Docker + Docker Compose</span></td>
+            <td>Podman</td>
+            <td>Reproducible environments; Compose for local dev, K8s for production</td>
+          </tr>
+          <tr>
+            <td><strong>Orchestration</strong></td>
+            <td><span class="tag tag-green">Kubernetes (K8s)</span></td>
+            <td>AWS ECS, Fly.io</td>
+            <td>Auto-scaling, self-healing, service discovery built-in</td>
+          </tr>
+          <tr>
+            <td><strong>CI/CD</strong></td>
+            <td><span class="tag tag-purple">GitHub Actions</span></td>
+            <td>GitLab CI, CircleCI</td>
+            <td>Native GitHub integration, free for public repos</td>
+          </tr>
+          <tr>
+            <td><strong>Monitoring</strong></td>
+            <td><span class="tag tag-orange">Prometheus + Grafana</span></td>
+            <td>Datadog, New Relic</td>
+            <td>Open-source, deep K8s integration</td>
+          </tr>
+          <tr>
+            <td><strong>Logging</strong></td>
+            <td><span class="tag tag-orange">ELK Stack</span></td>
+            <td>Loki + Grafana</td>
+            <td>Centralized log search across all microservices</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3. MICROSERVICES -->
+  <section id="microservices">
+    <h2><span class="icon" style="background:rgba(255,107,107,0.15)">&#128268;</span> Microservices</h2>
+    <p>Each service owns a bounded context and communicates asynchronously via RabbitMQ for stock events, and synchronously via REST/HTTP for queries.</p>
+
+    <div class="card-grid cols-2">
+
+      <div class="card accent-orange">
+        <h4>1. API Gateway Service</h4>
+        <p>Single entry point for all external traffic. Handles routing, rate limiting, request validation, and forwards requests to internal services.</p>
+        <div class="tags">
+          <span class="tag tag-orange">Kong / Custom</span>
+          <span class="tag tag-blue">TLS termination</span>
+          <span class="tag tag-blue">Rate limiting</span>
+        </div>
+      </div>
+
+      <div class="card accent-purple">
+        <h4>2. Auth Service</h4>
+        <p>Issues and validates JWT tokens for internal users. Manages OAuth 2.0 token lifecycle for Mercado Livre and Meta API credentials.</p>
+        <div class="tags">
+          <span class="tag tag-purple">JWT</span>
+          <span class="tag tag-purple">OAuth 2.0</span>
+          <span class="tag tag-blue">Refresh tokens</span>
+        </div>
+      </div>
+
+      <div class="card accent-green">
+        <h4>3. Inventory Service</h4>
+        <p>Core service. Owns the stock ledger. Exposes endpoints to create/update/query product quantities. Publishes <code>stock.updated</code> events on every change.</p>
+        <div class="tags">
+          <span class="tag tag-green">MongoDB</span>
+          <span class="tag tag-red">Publishes events</span>
+          <span class="tag tag-blue">Source of truth</span>
+        </div>
+      </div>
+
+      <div class="card accent-green">
+        <h4>4. Order Service</h4>
+        <p>Receives purchase orders from all channels (POS terminal, marketplace webhooks). Validates, persists the order and emits <code>order.created</code> events that trigger stock deduction.</p>
+        <div class="tags">
+          <span class="tag tag-green">MongoDB</span>
+          <span class="tag tag-red">Publishes events</span>
+          <span class="tag tag-orange">Multi-channel</span>
+        </div>
+      </div>
+
+      <div class="card accent-red">
+        <h4>5. Mercado Livre Integration Service</h4>
+        <p>Dedicated adapter for the Mercado Livre API. Receives incoming order webhooks, maps them to internal order schema, and pushes stock updates back to listings when inventory changes.</p>
+        <div class="tags">
+          <span class="tag tag-red">Webhook receiver</span>
+          <span class="tag tag-green">ML API v2</span>
+          <span class="tag tag-purple">OAuth 2.0</span>
+        </div>
+      </div>
+
+      <div class="card accent-red">
+        <h4>6. Meta Marketplace Integration Service</h4>
+        <p>Adapter for Meta Commerce / Facebook Marketplace API. Handles catalog sync, incoming purchase events via webhooks, and outgoing stock updates via Commerce API.</p>
+        <div class="tags">
+          <span class="tag tag-red">Webhook receiver</span>
+          <span class="tag tag-green">Meta Commerce API</span>
+          <span class="tag tag-purple">Graph API</span>
+        </div>
+      </div>
+
+      <div class="card accent-purple">
+        <h4>7. Product Service</h4>
+        <p>Manages the product catalog: SKUs, descriptions, images, categories, and marketplace listing IDs. Acts as the reference for Inventory Service when resolving product identity.</p>
+        <div class="tags">
+          <span class="tag tag-green">MongoDB</span>
+          <span class="tag tag-blue">SKU registry</span>
+          <span class="tag tag-blue">Listing mapping</span>
+        </div>
+      </div>
+
+      <div class="card accent-orange">
+        <h4>8. Notification Service</h4>
+        <p>Listens for low-stock and out-of-stock events. Delivers alerts via email, push notification, or in-app message. Configurable thresholds per product.</p>
+        <div class="tags">
+          <span class="tag tag-orange">Subscribes events</span>
+          <span class="tag tag-blue">Email / Push</span>
+          <span class="tag tag-blue">Thresholds</span>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 3px solid #7dd3fc;">
+        <h4>9. Reporting Service</h4>
+        <p>Read-only service for dashboards. Aggregates sales by channel, stock history, turnover rates. Reads from MongoDB with aggregation pipelines or a dedicated read replica.</p>
+        <div class="tags">
+          <span class="tag tag-blue">Read-only</span>
+          <span class="tag tag-blue">Analytics</span>
+          <span class="tag tag-purple">Dashboard API</span>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 3px solid #7dd3fc;">
+        <h4>10. POS (Point of Sale) Service</h4>
+        <p>Backend for in-person sales terminals. Processes physical purchases, creates orders in the Order Service, and syncs with Inventory in real-time. Can operate offline with local queue.</p>
+        <div class="tags">
+          <span class="tag tag-blue">Offline-first</span>
+          <span class="tag tag-orange">Local queue</span>
+          <span class="tag tag-green">Reconciliation</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 4. ARCHITECTURE DIAGRAM -->
+  <section id="architecture">
+    <h2><span class="icon" style="background:rgba(255,165,0,0.15)">&#127760;</span> High-Level Architecture</h2>
+
+    <div class="arch-diagram">
+
+      <div class="arch-label">Clients &amp; External Systems</div>
+      <div class="arch-row">
+        <div class="arch-node node-client">&#128101; Dashboard (Next.js)</div>
+        <div class="arch-node node-client">&#128248; POS Terminal</div>
+        <div class="arch-node node-ext">&#128722; Mercado Livre API</div>
+        <div class="arch-node node-ext">&#128178; Meta Marketplace API</div>
+      </div>
+
+      <div class="arch-row">
+        <div class="arch-label" style="width:100%">Gateway Layer</div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-node node-gateway">&#128274; API Gateway (Kong)</div>
+        <div class="arch-node node-gateway">&#128272; Auth Service</div>
+      </div>
+
+      <div class="arch-row">
+        <div class="arch-label" style="width:100%">Core Services</div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-node node-service">&#128230; Order Service</div>
+        <div class="arch-node node-service">&#128202; Inventory Service</div>
+        <div class="arch-node node-service">&#128241; Product Service</div>
+        <div class="arch-node node-service">&#128203; POS Service</div>
+      </div>
+
+      <div class="arch-row">
+        <div class="arch-label" style="width:100%">Message Broker</div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-node node-queue">&#128257; RabbitMQ — stock.updated / order.created / stock.low</div>
+      </div>
+
+      <div class="arch-row">
+        <div class="arch-label" style="width:100%">Integration &amp; Support Services</div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-node node-service">&#127381; ML Integration</div>
+        <div class="arch-node node-service">&#128140; Meta Integration</div>
+        <div class="arch-node node-service">&#128276; Notification Service</div>
+        <div class="arch-node node-service">&#128200; Reporting Service</div>
+      </div>
+
+      <div class="arch-row">
+        <div class="arch-label" style="width:100%">Data Layer</div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-node node-db">&#128196; MongoDB (per-service DBs)</div>
+        <div class="arch-node node-db">&#9889; Redis Cache</div>
+      </div>
+
+    </div>
+
+    <div class="callout callout-info" style="margin-top:1rem">
+      <div class="callout-icon">&#8505;</div>
+      <div class="callout-body">
+        <strong>Database-per-service pattern</strong>
+        Each microservice owns its own MongoDB database. Services never query each other's databases directly — communication always goes through service APIs or message events.
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. DATABASES -->
+  <section id="databases">
+    <h2><span class="icon" style="background:rgba(56,189,248,0.15)">&#128196;</span> MongoDB — Database Design</h2>
+    <p>Using the database-per-service pattern, each service has its own MongoDB database. Below are the key collections with example schemas.</p>
+
+    <h3>products_db — Product Service</h3>
+    <pre><code><span class="c">// Collection: products</span>
+{
+  <span class="n">_id</span>: <span class="v">ObjectId</span>,
+  <span class="n">sku</span>: <span class="s">"TSHIRT-BLU-M"</span>,          <span class="c">// unique internal SKU</span>
+  <span class="n">name</span>: <span class="s">"Blue T-Shirt (M)"</span>,
+  <span class="n">description</span>: <span class="s">"..."</span>,
+  <span class="n">category</span>: <span class="s">"clothing"</span>,
+  <span class="n">attributes</span>: {               <span class="c">// flexible per product type</span>
+    <span class="n">color</span>: <span class="s">"blue"</span>, <span class="n">size</span>: <span class="s">"M"</span>, <span class="n">weight_g</span>: <span class="v">250</span>
+  },
+  <span class="n">images</span>: [<span class="s">"https://cdn.../img1.jpg"</span>],
+  <span class="n">marketplace_ids</span>: {
+    <span class="n">mercado_livre</span>: <span class="s">"MLB1234567890"</span>,
+    <span class="n">meta</span>: <span class="s">"123456789012345"</span>
+  },
+  <span class="n">price</span>: <span class="v">79.90</span>,
+  <span class="n">currency</span>: <span class="s">"BRL"</span>,
+  <span class="n">is_active</span>: <span class="k">true</span>,
+  <span class="n">created_at</span>: <span class="v">ISODate</span>, <span class="n">updated_at</span>: <span class="v">ISODate</span>
+}</code></pre>
+
+    <h3>inventory_db — Inventory Service</h3>
+    <pre><code><span class="c">// Collection: stock_levels</span>
+{
+  <span class="n">_id</span>: <span class="v">ObjectId</span>,
+  <span class="n">sku</span>: <span class="s">"TSHIRT-BLU-M"</span>,
+  <span class="n">quantity</span>: <span class="v">42</span>,
+  <span class="n">reserved</span>: <span class="v">3</span>,               <span class="c">// orders in-flight</span>
+  <span class="n">available</span>: <span class="v">39</span>,             <span class="c">// quantity - reserved</span>
+  <span class="n">low_stock_threshold</span>: <span class="v">5</span>,
+  <span class="n">location</span>: <span class="s">"warehouse-A"</span>,
+  <span class="n">updated_at</span>: <span class="v">ISODate</span>
+}
+
+<span class="c">// Collection: stock_movements  (append-only ledger)</span>
+{
+  <span class="n">_id</span>: <span class="v">ObjectId</span>,
+  <span class="n">sku</span>: <span class="s">"TSHIRT-BLU-M"</span>,
+  <span class="n">delta</span>: <span class="v">-1</span>,                  <span class="c">// negative = sold, positive = restocked</span>
+  <span class="n">reason</span>: <span class="s">"sale"</span>,             <span class="c">// sale | restock | adjustment | return</span>
+  <span class="n">source</span>: <span class="s">"mercado_livre"</span>,   <span class="c">// mercado_livre | meta | pos | manual</span>
+  <span class="n">order_id</span>: <span class="s">"ORD-20260307-001"</span>,
+  <span class="n">created_at</span>: <span class="v">ISODate</span>
+}</code></pre>
+
+    <h3>orders_db — Order Service</h3>
+    <pre><code><span class="c">// Collection: orders</span>
+{
+  <span class="n">_id</span>: <span class="v">ObjectId</span>,
+  <span class="n">order_id</span>: <span class="s">"ORD-20260307-001"</span>,
+  <span class="n">source</span>: <span class="s">"mercado_livre"</span>,   <span class="c">// channel of origin</span>
+  <span class="n">external_order_id</span>: <span class="s">"ML-9876543"</span>,
+  <span class="n">status</span>: <span class="s">"confirmed"</span>,       <span class="c">// pending | confirmed | shipped | cancelled</span>
+  <span class="n">customer</span>: {
+    <span class="n">name</span>: <span class="s">"João Silva"</span>,
+    <span class="n">email</span>: <span class="s">"joao@email.com"</span>,
+    <span class="n">document</span>: <span class="s">"***.***.***-**"</span>  <span class="c">// LGPD-masked</span>
+  },
+  <span class="n">items</span>: [
+    { <span class="n">sku</span>: <span class="s">"TSHIRT-BLU-M"</span>, <span class="n">qty</span>: <span class="v">2</span>, <span class="n">unit_price</span>: <span class="v">79.90</span> }
+  ],
+  <span class="n">total</span>: <span class="v">159.80</span>,
+  <span class="n">currency</span>: <span class="s">"BRL"</span>,
+  <span class="n">stock_deducted</span>: <span class="k">false</span>,     <span class="c">// flag for idempotency</span>
+  <span class="n">created_at</span>: <span class="v">ISODate</span>, <span class="n">updated_at</span>: <span class="v">ISODate</span>
+}</code></pre>
+
+    <h3>integrations_db — Integration Services (shared)</h3>
+    <pre><code><span class="c">// Collection: oauth_tokens</span>
+{
+  <span class="n">_id</span>: <span class="v">ObjectId</span>,
+  <span class="n">provider</span>: <span class="s">"mercado_livre"</span>,
+  <span class="n">access_token</span>: <span class="s">"APP_USR-..."</span>,   <span class="c">// encrypted at rest</span>
+  <span class="n">refresh_token</span>: <span class="s">"TG-..."</span>,
+  <span class="n">expires_at</span>: <span class="v">ISODate</span>
+}
+
+<span class="c">// Collection: sync_logs</span>
+{
+  <span class="n">_id</span>: <span class="v">ObjectId</span>,
+  <span class="n">provider</span>: <span class="s">"meta"</span>,
+  <span class="n">event_type</span>: <span class="s">"stock_push"</span>,
+  <span class="n">sku</span>: <span class="s">"TSHIRT-BLU-M"</span>,
+  <span class="n">payload</span>: { <span class="n">quantity</span>: <span class="v">39</span> },
+  <span class="n">status</span>: <span class="s">"success"</span>,          <span class="c">// success | failed | retrying</span>
+  <span class="n">attempts</span>: <span class="v">1</span>,
+  <span class="n">error</span>: <span class="k">null</span>,
+  <span class="n">created_at</span>: <span class="v">ISODate</span>
+}</code></pre>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">&#9888;</div>
+      <div class="callout-body">
+        <strong>Recommended MongoDB Indexes</strong>
+        Ensure compound indexes on <code>{ sku, source }</code> in stock_movements for fast per-SKU history queries. Add a TTL index on sync_logs for automatic cleanup of old entries after 90 days.
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. INTEGRATIONS -->
+  <section id="integrations">
+    <h2><span class="icon" style="background:rgba(134,239,172,0.15)">&#128279;</span> Marketplace Integrations</h2>
+
+    <div class="card-grid cols-2">
+      <div class="card accent-green">
+        <h4>Mercado Livre</h4>
+        <p>Uses the official <strong style="color:#fff">Mercado Libre API v2</strong> with OAuth 2.0 authorization code flow. Key operations:</p>
+        <ul style="color:var(--text-muted); font-size:0.875rem; padding-left:1.2rem; margin-top:0.5rem; line-height:1.8">
+          <li>Receive order webhooks (<code>/notifications</code>)</li>
+          <li>Update listing stock via <code>PUT /items/{id}</code></li>
+          <li>Pause listing when stock reaches 0</li>
+          <li>Token auto-refresh every 6 hours</li>
+        </ul>
+        <div class="tags" style="margin-top:0.8rem">
+          <span class="tag tag-green">OAuth 2.0</span>
+          <span class="tag tag-blue">Webhooks</span>
+          <span class="tag tag-orange">Rate: 3000 req/min</span>
+        </div>
+      </div>
+
+      <div class="card accent-purple">
+        <h4>Meta Marketplace</h4>
+        <p>Uses the <strong style="color:#fff">Meta Commerce Platform API</strong> (Facebook Graph API). Key operations:</p>
+        <ul style="color:var(--text-muted); font-size:0.875rem; padding-left:1.2rem; margin-top:0.5rem; line-height:1.8">
+          <li>Manage catalog via <code>/catalog/{id}/items</code></li>
+          <li>Receive purchase events via Webhooks</li>
+          <li>Update inventory via <code>POST /catalog_item_updates</code></li>
+          <li>Handle checkout_update webhook for pending orders</li>
+        </ul>
+        <div class="tags" style="margin-top:0.8rem">
+          <span class="tag tag-purple">Graph API</span>
+          <span class="tag tag-blue">Webhooks</span>
+          <span class="tag tag-orange">Catalog API</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info" style="margin-top:1rem">
+      <div class="callout-icon">&#8505;</div>
+      <div class="callout-body">
+        <strong>Idempotency is critical</strong>
+        Both marketplaces can deliver duplicate webhook events. Always check <code>stock_deducted: true</code> on the order before processing. Use the external order ID as an idempotency key when inserting into the orders collection.
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. DATA FLOWS -->
+  <section id="flows">
+    <h2><span class="icon" style="background:rgba(108,99,255,0.15)">&#8635;</span> Key Data Flows</h2>
+
+    <h3>Online Sale (Mercado Livre / Meta)</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-body">
+          <strong>Webhook received</strong>
+          <p>Marketplace posts an order notification to the respective Integration Service endpoint.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-body">
+          <strong>Signature validation</strong>
+          <p>Integration Service validates the webhook HMAC signature and fetches full order details from the marketplace API.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-body">
+          <strong>Order normalization</strong>
+          <p>Marketplace-specific order schema is mapped to the internal Order schema and sent to the Order Service via REST POST.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-body">
+          <strong>Order persisted &amp; event emitted</strong>
+          <p>Order Service saves the order to MongoDB and publishes an <code>order.created</code> event to RabbitMQ.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-body">
+          <strong>Stock deducted</strong>
+          <p>Inventory Service consumes the event, deducts stock, updates <code>stock_levels</code>, appends to <code>stock_movements</code> ledger, and emits <code>stock.updated</code>.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-body">
+          <strong>Marketplace sync</strong>
+          <p>Both Integration Services consume <code>stock.updated</code> and push the new quantity to their respective marketplace listing APIs.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">7</div>
+        <div class="flow-body">
+          <strong>Low-stock check</strong>
+          <p>If new quantity falls below threshold, Inventory Service additionally emits <code>stock.low</code>, triggering a notification via the Notification Service.</p>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+
+    <h3>In-Person Sale (POS Terminal)</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-body">
+          <strong>Sale registered at POS</strong>
+          <p>Cashier scans products; POS app calls the POS Service with a sale payload.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-body">
+          <strong>Order created</strong>
+          <p>POS Service forwards to Order Service with <code>source: "pos"</code>. Same flow from step 4 above applies.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-body">
+          <strong>Offline resilience</strong>
+          <p>If the POS terminal is offline, sales are queued locally (SQLite) and synced when connectivity is restored — preventing double-counting via idempotency keys.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. INFRASTRUCTURE -->
+  <section id="infra">
+    <h2><span class="icon" style="background:rgba(56,189,248,0.15)">&#9729;</span> Infrastructure &amp; DevOps</h2>
+
+    <div class="card-grid cols-2">
+      <div class="card accent-purple">
+        <h4>Repository Structure</h4>
+        <p>Monorepo (recommended) using <strong style="color:#fff">pnpm workspaces</strong> or <strong style="color:#fff">Turborepo</strong>. Each service lives in <code>apps/&lt;service-name&gt;</code>, shared types in <code>packages/shared</code>.</p>
+      </div>
+      <div class="card accent-green">
+        <h4>Local Development</h4>
+        <p>Single <code>docker-compose.yml</code> at the root spins up all services, MongoDB, Redis, and RabbitMQ with one command: <code>docker compose up</code>.</p>
+      </div>
+      <div class="card accent-orange">
+        <h4>CI/CD Pipeline</h4>
+        <p>GitHub Actions runs lint → tests → build → Docker image push → K8s rolling deploy per service. Each service deploys independently.</p>
+      </div>
+      <div class="card" style="border-left:3px solid #7dd3fc">
+        <h4>Security</h4>
+        <p>Secrets managed via <strong style="color:#fff">Kubernetes Secrets</strong> or <strong style="color:#fff">HashiCorp Vault</strong>. OAuth tokens encrypted at rest in MongoDB. All traffic inside the cluster over mTLS.</p>
+      </div>
+    </div>
+
+    <h3>Environment Variables (example)</h3>
+    <pre><code><span class="c"># Inventory Service</span>
+<span class="n">MONGODB_URI</span>=<span class="s">mongodb://mongo:27017/inventory_db</span>
+<span class="n">RABBITMQ_URL</span>=<span class="s">amqp://rabbitmq:5672</span>
+<span class="n">REDIS_URL</span>=<span class="s">redis://redis:6379</span>
+<span class="n">JWT_SECRET</span>=<span class="s">super-secret-key</span>
+<span class="n">LOW_STOCK_DEFAULT_THRESHOLD</span>=<span class="v">5</span>
+
+<span class="c"># Mercado Livre Integration Service</span>
+<span class="n">ML_CLIENT_ID</span>=<span class="s">your-app-id</span>
+<span class="n">ML_CLIENT_SECRET</span>=<span class="s">your-app-secret</span>
+<span class="n">ML_REDIRECT_URI</span>=<span class="s">https://api.yourapp.com/auth/ml/callback</span>
+<span class="n">ML_WEBHOOK_SECRET</span>=<span class="s">webhook-hmac-secret</span>
+
+<span class="c"># Meta Integration Service</span>
+<span class="n">META_APP_ID</span>=<span class="s">your-meta-app-id</span>
+<span class="n">META_APP_SECRET</span>=<span class="s">your-meta-app-secret</span>
+<span class="n">META_CATALOG_ID</span>=<span class="s">your-catalog-id</span>
+<span class="n">META_WEBHOOK_VERIFY_TOKEN</span>=<span class="s">your-verify-token</span></code></pre>
+  </section>
+
+  <!-- 9. ROADMAP -->
+  <section id="roadmap">
+    <h2><span class="icon" style="background:rgba(255,165,0,0.15)">&#128640;</span> Development Roadmap</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Phase</th>
+            <th>Scope</th>
+            <th>Services Involved</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Phase 1 — Core</strong></td>
+            <td>Product catalog, inventory CRUD, manual stock adjustments, basic dashboard</td>
+            <td>Product, Inventory, Auth, API Gateway</td>
+            <td><span class="tag tag-red">Critical</span></td>
+          </tr>
+          <tr>
+            <td><strong>Phase 2 — POS</strong></td>
+            <td>In-person sale flow, POS terminal app, offline queue</td>
+            <td>POS, Order, Inventory</td>
+            <td><span class="tag tag-red">Critical</span></td>
+          </tr>
+          <tr>
+            <td><strong>Phase 3 — ML</strong></td>
+            <td>Mercado Livre OAuth setup, webhook receiver, stock push</td>
+            <td>ML Integration, Order, Inventory</td>
+            <td><span class="tag tag-orange">High</span></td>
+          </tr>
+          <tr>
+            <td><strong>Phase 4 — Meta</strong></td>
+            <td>Meta Commerce API integration, catalog sync, purchase events</td>
+            <td>Meta Integration, Order, Inventory</td>
+            <td><span class="tag tag-orange">High</span></td>
+          </tr>
+          <tr>
+            <td><strong>Phase 5 — Alerts</strong></td>
+            <td>Low-stock notifications, configurable thresholds, email/push</td>
+            <td>Notification, Inventory</td>
+            <td><span class="tag tag-blue">Medium</span></td>
+          </tr>
+          <tr>
+            <td><strong>Phase 6 — Analytics</strong></td>
+            <td>Sales reports, stock history, turnover metrics, export to CSV</td>
+            <td>Reporting</td>
+            <td><span class="tag tag-blue">Medium</span></td>
+          </tr>
+          <tr>
+            <td><strong>Phase 7 — Scale</strong></td>
+            <td>K8s deployment, Prometheus/Grafana monitoring, ELK logging</td>
+            <td>All</td>
+            <td><span class="tag tag-purple">Future</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+</main>
+
+<footer>
+  <p>Auto-Shop Architecture Documentation &mdash; Last updated <span>March 2026</span></p>
+  <p style="margin-top:0.4rem; font-size:0.78rem;">Internal use only. Subject to change as the system evolves.</p>
+</footer>
+
+</body>
+</html>

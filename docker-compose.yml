@@ -1,0 +1,239 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - apps/auth-service/.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  product-service:
+    build:
+      context: .
+      dockerfile: apps/product-service/Dockerfile
+    ports:
+      - "3002:3002"
+    env_file:
+      - apps/product-service/.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: apps/inventory-service/Dockerfile
+    ports:
+      - "3003:3003"
+    env_file:
+      - apps/inventory-service/.env
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  order-service:
+    build:
+      context: .
+      dockerfile: apps/order-service/Dockerfile
+    ports:
+      - "3004:3004"
+    env_file:
+      - apps/order-service/.env
+    environment:
+      MONGODB_URI: mongodb://root:rootpassword@mongodb:27017/orders_db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  pos-service:
+    build:
+      context: .
+      dockerfile: apps/pos-service/Dockerfile
+    ports:
+      - "3005:3005"
+    env_file:
+      - apps/pos-service/.env
+    environment:
+      ORDER_SERVICE_URL: http://order-service:3004
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      PORT: "3005"
+      SQLITE_PATH: /app/data/offline-queue.db
+    volumes:
+      - pos_data:/app/data
+    depends_on:
+      - order-service
+
+  ml-service:
+    build:
+      context: .
+      dockerfile: apps/ml-service/Dockerfile
+    ports:
+      - "3006:3006"
+    env_file:
+      - apps/ml-service/.env
+    environment:
+      MONGODB_URI: mongodb://root:rootpassword@mongodb:27017/ml_db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      ORDER_SERVICE_URL: http://order-service:3004
+      PRODUCT_SERVICE_URL: http://product-service:3002
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+
+  meta-service:
+    build:
+      context: .
+      dockerfile: apps/meta-service/Dockerfile
+    ports:
+      - "3007:3007"
+    env_file:
+      - apps/meta-service/.env
+    environment:
+      MONGODB_URI: mongodb://root:rootpassword@mongodb:27017/meta_db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      ORDER_SERVICE_URL: http://order-service:3004
+      PRODUCT_SERVICE_URL: http://product-service:3002
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    ports:
+      - "3008:3008"
+    env_file:
+      - apps/notification-service/.env
+    environment:
+      MONGODB_URI: mongodb://root:rootpassword@mongodb:27017/notifications_db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  reporting-service:
+    build:
+      context: .
+      dockerfile: apps/reporting-service/Dockerfile
+    ports:
+      - "3009:3009"
+    env_file:
+      - apps/reporting-service/.env
+    environment:
+      ORDERS_DB_URI: mongodb://root:rootpassword@mongodb:27017/orders_db?authSource=admin
+      INVENTORY_DB_URI: mongodb://root:rootpassword@mongodb:27017/inventory_db?authSource=admin
+      PRODUCTS_DB_URI: mongodb://root:rootpassword@mongodb:27017/products_db?authSource=admin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - apps/api-gateway/.env
+    environment:
+      ORDER_SERVICE_URL: http://order-service:3004
+      POS_SERVICE_URL: http://pos-service:3005
+    depends_on:
+      - auth-service
+      - product-service
+      - inventory-service
+      - order-service
+      - pos-service
+      - ml-service
+      - meta-service
+      - notification-service
+      - reporting-service
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "4000:3000"
+    env_file:
+      - apps/web/.env.local
+    depends_on:
+      - api-gateway
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
+  pos_data:

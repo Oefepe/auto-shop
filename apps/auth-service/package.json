@@ -1,0 +1,30 @@
+{
+  "name": "@auto-shop/auth-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1",
+    "@fastify/jwt": "^9.0.3",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/sensible": "^6.0.3",
+    "mongoose": "^8.9.4",
+    "bcryptjs": "^2.4.3",
+    "ioredis": "^5.4.2",
+    "fastify-plugin": "^5.0.1",
+    "dotenv": "^16.4.7",
+    "@auto-shop/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "@types/node": "^22.10.7",
+    "@types/bcryptjs": "^2.4.6",
+    "tsx": "^4.19.2"
+  }
+}

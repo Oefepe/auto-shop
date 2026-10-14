@@ -1,0 +1,29 @@
+{
+  "name": "@auto-shop/pos-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1",
+    "@fastify/jwt": "^9.0.3",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/sensible": "^6.0.3",
+    "better-sqlite3": "^11.8.1",
+    "fastify-plugin": "^5.0.1",
+    "dotenv": "^16.4.7",
+    "node-fetch": "^3.3.2",
+    "@auto-shop/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "@types/node": "^22.10.7",
+    "@types/better-sqlite3": "^7.6.12",
+    "tsx": "^4.19.2"
+  }
+}
